@@ -10,6 +10,53 @@ import time
 import configparser
 import os
 
+
+
+
+# Read configuration from ini file
+config = configparser.ConfigParser()
+config.read(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
+
+# Service Configuration
+refresh_interval = int(config['DEFAULT']['REFRESH_INTERVAL']) # Interval in seconds at which speedtest will be run
+MQTTServer = config['MQTT']['MQTTServer']            # MQTT broker - IP
+MQTTPort = int(config['MQTT']['MQTTPort'])           # MQTT broker - Port
+MQTTKeepalive = int(config['MQTT']['MQTTKeepalive']) # MQTT broker - keepalive
+MQTTUser = config['MQTT']['MQTTUser']                # MQTT broker - user - default: 0 (disabled/no authentication)
+MQTTPassword = config['MQTT']['MQTTPassword']        # MQTT broker - password - default: 0 (disabled/no authentication)
+HAEnableAutoDiscovery = config['HA']['HAEnableAutoDiscovery'] == 'True' # Home Assistant send auto discovery
+SPEEDTEST_SERVERID = config['DEFAULT']['SPEEDTEST_SERVERID'] # Remote server for speedtest
+SPEEDTEST_PATH = config['DEFAULT']['SPEEDTEST_PATH'] # path of the speedtest cli application
+DEBUG = int(config['DEFAULT']['DEBUG']) #set to 1 to get debug information.
+CONSOLE = int(config['DEFAULT']['CONSOLE']) #set to 1 to send output to stdout, 0 to local syslog
+HAAutoDiscoveryDeviceName = config['HA']['HAAutoDiscoveryDeviceName']            # Home Assistant Device Name
+HAAutoDiscoveryDeviceId = config['HA']['HAAutoDiscoveryDeviceId']     # Home Assistant Unique Id
+HAAutoDiscoveryDeviceManufacturer = config['HA']['HAAutoDiscoveryDeviceManufacturer']
+HAAutoDiscoveryDeviceModel = config['HA']['HAAutoDiscoveryDeviceModel']
+
+
+# Setup Logger 
+_LOGGER = logging.getLogger(__name__)
+if CONSOLE:
+    formatter = \
+        logging.Formatter('%(message)s')
+    handler1 = logging.StreamHandler(sys.stdout)
+    handler1.setFormatter(formatter)
+    handler1.setLevel(logging.NOTSET)
+    _LOGGER.addHandler(handler1)
+else:
+    formatter2 = \
+        logging.Formatter('%(levelname)s %(asctime)s %(filename)s - %(message)s')
+    handler2 = logging.handlers.SysLogHandler(address = '/dev/log')
+    handler2.setFormatter(formatter2)
+    handler2.setLevel(logging.NOTSET)
+    _LOGGER.addHandler(handler2)
+
+if DEBUG:
+  _LOGGER.setLevel(logging.DEBUG)
+else:
+  _LOGGER.setLevel(logging.NOTSET)
+
 def run_speedtest():
     # Run Speedtest
     _LOGGER.info('Running Speedtest')
@@ -62,52 +109,6 @@ def run_speedtest():
     _LOGGER.info('Server name: %s',server_name)
     _LOGGER.info('URL results: %s',url_result)
     _LOGGER.info('---------------------------------')
-
-
-# Read configuration from ini file
-config = configparser.ConfigParser()
-config.read(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
-
-# Service Configuration
-refresh_interval = int(config['DEFAULT']['REFRESH_INTERVAL']) # Interval in seconds at which speedtest will be run
-MQTTServer = config['MQTT']['MQTTServer']            # MQTT broker - IP
-MQTTPort = int(config['MQTT']['MQTTPort'])           # MQTT broker - Port
-MQTTKeepalive = int(config['MQTT']['MQTTKeepalive']) # MQTT broker - keepalive
-MQTTUser = config['MQTT']['MQTTUser']                # MQTT broker - user - default: 0 (disabled/no authentication)
-MQTTPassword = config['MQTT']['MQTTPassword']        # MQTT broker - password - default: 0 (disabled/no authentication)
-HAEnableAutoDiscovery = config['HA']['HAEnableAutoDiscovery'] == 'True' # Home Assistant send auto discovery
-SPEEDTEST_SERVERID = config['DEFAULT']['SPEEDTEST_SERVERID'] # Remote server for speedtest
-SPEEDTEST_PATH = config['DEFAULT']['SPEEDTEST_PATH'] # path of the speedtest cli application
-DEBUG = int(config['DEFAULT']['DEBUG']) #set to 1 to get debug information.
-CONSOLE = int(config['DEFAULT']['CONSOLE']) #set to 1 to send output to stdout, 0 to local syslog
-HAAutoDiscoveryDeviceName = config['HA']['HAAutoDiscoveryDeviceName']            # Home Assistant Device Name
-HAAutoDiscoveryDeviceId = config['HA']['HAAutoDiscoveryDeviceId']     # Home Assistant Unique Id
-HAAutoDiscoveryDeviceManufacturer = config['HA']['HAAutoDiscoveryDeviceManufacturer']
-HAAutoDiscoveryDeviceModel = config['HA']['HAAutoDiscoveryDeviceModel']
-
-
-# Setup Logger 
-_LOGGER = logging.getLogger(__name__)
-if CONSOLE:
-    formatter = \
-        logging.Formatter('%(message)s')
-    handler1 = logging.StreamHandler(sys.stdout)
-    handler1.setFormatter(formatter)
-    handler1.setLevel(logging.NOTSET)
-    _LOGGER.addHandler(handler1)
-else:
-    formatter2 = \
-        logging.Formatter('%(levelname)s %(asctime)s %(filename)s - %(message)s')
-    handler2 = logging.handlers.SysLogHandler(address = '/dev/log')
-    handler2.setFormatter(formatter2)
-    handler2.setLevel(logging.NOTSET)
-    _LOGGER.addHandler(handler2)
-
-if DEBUG:
-  _LOGGER.setLevel(logging.DEBUG)
-else:
-  _LOGGER.setLevel(logging.NOTSET)
-
 
 def publish_message(msg, mqtt_path):
     try:
@@ -185,28 +186,26 @@ def on_connect(client, userdata, flags, rc):
         _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/speedtest_[nametemp]/config')
         # Speedtest readings
         send_autodiscover(
-            name="Speedtest Download", entity_id="speedtestmqtt_download", entity_type="sensor",
+            name="Speedtest Download", entity_id="download", entity_type="sensor",
             state_topic="speedtest/download", unit_of_measurement="Mbit/s"
         )
         send_autodiscover(
-            name="Speedtest Upload", entity_id="speedtestmqtt_upload", entity_type="sensor",
+            name="Speedtest Upload", entity_id="upload", entity_type="sensor",
             state_topic="speedtest/upload", unit_of_measurement="Mbit/s"
         )
         send_autodiscover(
-            name="Speedtest Ping", entity_id="speedtestmqtt_ping", entity_type="sensor",
+            name="Speedtest Ping", entity_id="ping", entity_type="sensor",
             state_topic="speedtest/ping", unit_of_measurement="ms",
             attributes={
                 "json_attributes_topic":"speedtest/attributes"
-#                "timestamp":"speedtest/timestamp",
-#                "server_id":"speedtest/server_id"
             }
         )
         send_autodiscover(
-            name="Speedtest ISP", entity_id="speedtestmqtt_isp", entity_type="sensor",
+            name="Speedtest ISP", entity_id="isp", entity_type="sensor",
             state_topic="speedtest/isp"
         )
         send_autodiscover(
-            name="Speedtest Server", entity_id="speedtestmqtt_server", entity_type="sensor",
+            name="Speedtest Server", entity_id="server", entity_type="sensor",
             state_topic="speedtest/server"
         )
 
