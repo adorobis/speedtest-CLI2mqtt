@@ -1,6 +1,6 @@
 FROM python:slim
 
-#ARG VERSION
+ARG VERSION
 
 RUN apt-get update && \
     apt-get --assume-yes install curl && \
@@ -13,8 +13,12 @@ COPY requirements.txt ./
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY speedtest.py ./
+WORKDIR /usr/src/config
 
 COPY config.ini ./
+
+WORKDIR /usr/src/app
+
+COPY speedtest.py ./
 
 CMD [ "python", "./speedtest.py" ]

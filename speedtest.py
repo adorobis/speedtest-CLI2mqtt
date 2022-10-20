@@ -15,7 +15,8 @@ import os
 
 # Read configuration from ini file
 config = configparser.ConfigParser()
-config.read(os.path.dirname(os.path.abspath(__file__)) + '/config.ini')
+print(os.path.dirname(os.path.abspath(__file__)) + '/../config/config.ini')
+config.read(os.path.dirname(os.path.abspath(__file__)) + '/../config/config.ini')
 
 # Service Configuration
 refresh_interval = int(config['DEFAULT']['REFRESH_INTERVAL']) # Interval in seconds at which speedtest will be run
@@ -186,26 +187,26 @@ def on_connect(client, userdata, flags, rc):
         _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/speedtest_[nametemp]/config')
         # Speedtest readings
         send_autodiscover(
-            name="Download", entity_id="download", entity_type="sensor",
+            name="Download", entity_id="speedtest_net_download", entity_type="sensor",
             state_topic="speedtest/download", unit_of_measurement="Mbit/s"
         )
         send_autodiscover(
-            name="Upload", entity_id="upload", entity_type="sensor",
+            name="Upload", entity_id="speedtest_net_upload", entity_type="sensor",
             state_topic="speedtest/upload", unit_of_measurement="Mbit/s"
         )
         send_autodiscover(
-            name="Ping", entity_id="ping", entity_type="sensor",
+            name="Ping", entity_id="speedtest_net_ping", entity_type="sensor",
             state_topic="speedtest/ping", unit_of_measurement="ms",
             attributes={
                 "json_attributes_topic":"speedtest/attributes"
             }
         )
         send_autodiscover(
-            name="ISP", entity_id="isp", entity_type="sensor",
+            name="ISP", entity_id="speedtest_net_isp", entity_type="sensor",
             state_topic="speedtest/isp"
         )
         send_autodiscover(
-            name="Server", entity_id="server", entity_type="sensor",
+            name="Server", entity_id="speedtest_net_server", entity_type="sensor",
             state_topic="speedtest/server"
         )
 
