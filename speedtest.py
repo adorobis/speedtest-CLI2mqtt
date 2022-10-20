@@ -186,26 +186,26 @@ def on_connect(client, userdata, flags, rc):
         _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/speedtest_[nametemp]/config')
         # Speedtest readings
         send_autodiscover(
-            name="Speedtest Download", entity_id="download", entity_type="sensor",
+            name="Download", entity_id="download", entity_type="sensor",
             state_topic="speedtest/download", unit_of_measurement="Mbit/s"
         )
         send_autodiscover(
-            name="Speedtest Upload", entity_id="upload", entity_type="sensor",
+            name="Upload", entity_id="upload", entity_type="sensor",
             state_topic="speedtest/upload", unit_of_measurement="Mbit/s"
         )
         send_autodiscover(
-            name="Speedtest Ping", entity_id="ping", entity_type="sensor",
+            name="Ping", entity_id="ping", entity_type="sensor",
             state_topic="speedtest/ping", unit_of_measurement="ms",
             attributes={
                 "json_attributes_topic":"speedtest/attributes"
             }
         )
         send_autodiscover(
-            name="Speedtest ISP", entity_id="isp", entity_type="sensor",
+            name="ISP", entity_id="isp", entity_type="sensor",
             state_topic="speedtest/isp"
         )
         send_autodiscover(
-            name="Speedtest Server", entity_id="server", entity_type="sensor",
+            name="Server", entity_id="server", entity_type="sensor",
             state_topic="speedtest/server"
         )
 
