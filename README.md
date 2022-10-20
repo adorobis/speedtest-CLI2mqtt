@@ -15,5 +15,21 @@ Note: There are other ways for HA to run the Speedtest-CLI binary such as the on
 
 # Instructions
 You can run the speedtest.py script the way you want on a machine where you have installed Okla Speedtest.net CLI
+
 Or it is much easier to simply deploy container from this repo:
 https://hub.docker.com/repository/docker/adorobis/speedtest2mqtt
+
+The easiest way is to do it with docker-compose:
+```
+  speedtest:
+    container_name: speedtest
+    image: adorobis/speedtest2mqtt:latest
+    restart: unless-stopped
+    volumes:
+      - <your docker compose home directory>/speedtest/config:/usr/src/config
+```
+or via docker command:
+```
+docker run adorobis/speedtest2mqtt
+```
+Make sure you configure network which will have access to the internet as well as to your MQTT broker
