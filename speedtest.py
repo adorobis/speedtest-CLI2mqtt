@@ -48,7 +48,9 @@ if CONSOLE:
 else:
     formatter2 = \
         logging.Formatter('%(levelname)s %(asctime)s %(filename)s - %(message)s')
-    handler2 = logging.handlers.SysLogHandler(address = '/dev/log')
+#    handler2 = logging.handlers.SysLogHandler(address = '/dev/log')
+    LOGFILE = os.path.dirname(os.path.abspath(__file__)) + '/../config/speedtest.log'
+    handler2 = logging.handlers.RotatingFileHandler(LOGFILE, maxBytes=(1048576*5), backupCount=7)
     handler2.setFormatter(formatter2)
     handler2.setLevel(logging.NOTSET)
     _LOGGER.addHandler(handler2)
