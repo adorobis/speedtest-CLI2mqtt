@@ -43,7 +43,7 @@ if CONSOLE:
         logging.Formatter('%(message)s')
     handler1 = logging.StreamHandler(sys.stdout)
     handler1.setFormatter(formatter)
-    handler1.setLevel(logging.NOTSET)
+    handler1.setLevel(logging.INFO)
     _LOGGER.addHandler(handler1)
 else:
     formatter2 = \
@@ -52,13 +52,13 @@ else:
     LOGFILE = os.path.dirname(os.path.abspath(__file__)) + '/../config/speedtest.log'
     handler2 = logging.handlers.RotatingFileHandler(LOGFILE, maxBytes=(1048576*5), backupCount=7)
     handler2.setFormatter(formatter2)
-    handler2.setLevel(logging.NOTSET)
+    handler2.setLevel(logging.INFO)
     _LOGGER.addHandler(handler2)
 
 if DEBUG:
   _LOGGER.setLevel(logging.DEBUG)
 else:
-  _LOGGER.setLevel(logging.NOTSET)
+  _LOGGER.setLevel(logging.INFO)
 
 def run_speedtest():
     # Run Speedtest
