@@ -62,7 +62,7 @@ else:
 
 def run_speedtest():
     # Run Speedtest
-    _LOGGER.info('Running Speedtest')
+    _LOGGER.debug('Running Speedtest')
     if SPEEDTEST_SERVERID == '':
         speed_test_server_id = ''
     else:
@@ -105,13 +105,13 @@ def run_speedtest():
     publish_message(msg=server_name, mqtt_path='speedtest/server')
     publish_message(msg=json_attributes, mqtt_path='speedtest/attributes')
 
-    _LOGGER.info('Downstream BW: %s',down_load_speed)
-    _LOGGER.info('Upstram BW: %s',up_load_speed)
-    _LOGGER.info('Ping Latency: %s', ping_latency)
-    _LOGGER.info('ISP: %s', isp)
-    _LOGGER.info('Server name: %s',server_name)
-    _LOGGER.info('URL results: %s',url_result)
-    _LOGGER.info('---------------------------------')
+    _LOGGER.debug('Downstream BW: %s',down_load_speed)
+    _LOGGER.debug('Upstram BW: %s',up_load_speed)
+    _LOGGER.debug('Ping Latency: %s', ping_latency)
+    _LOGGER.debug('ISP: %s', isp)
+    _LOGGER.debug('Server name: %s',server_name)
+    _LOGGER.debug('URL results: %s',url_result)
+    _LOGGER.debug('---------------------------------')
 
 def publish_message(msg, mqtt_path):
     try:
@@ -186,7 +186,7 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
 def on_connect(client, userdata, flags, rc):
     publish_message("online","speedtest/status")
     if HAEnableAutoDiscovery is True:
-        _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/speedtest_[nametemp]/config')
+        _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/speedtest_net_[nametemp]/config')
         # Speedtest readings
         send_autodiscover(
             name="Download", entity_id="speedtest_net_download", entity_type="sensor",
@@ -224,13 +224,13 @@ def recon():
         mqttc.reconnect()
         _LOGGER.info('Successfull reconnected to the MQTT server')
     except:
-        _LOGGER.info('Could not reconnect to the MQTT server. Trying again in 10 seconds')
+        _LOGGER.warning('Could not reconnect to the MQTT server. Trying again in 10 seconds')
         time.sleep(10)
         recon()
 
 def on_disconnect(client, userdata, rc):
     if rc != 0:
-        _LOGGER.info('Unexpected disconnection from MQTT, trying to reconnect')
+        _LOGGER.warning('Unexpected disconnection from MQTT, trying to reconnect')
         recon()
 
 # Connect to the MQTT broker
@@ -247,9 +247,10 @@ mqttc.will_set("speedtest/status",payload="offline", qos=0, retain=True)
 while True:
     try:
         mqttc.connect(MQTTServer, MQTTPort, MQTTKeepalive)
+        _LOGGER.info('Successfully connected to MQTT broker')
         break
     except:
-        _LOGGER.info('Can\'t connect to MQTT broker. Retrying in 10 seconds.')
+        _LOGGER.warning('Can\'t connect to MQTT broker. Retrying in 10 seconds.')
         time.sleep(10)
         pass
     
@@ -262,5 +263,5 @@ while True:
         pass
     except KeyboardInterrupt:
         mqttc.loop_stop()
-        _LOGGER.info('Error when running speedtest')
+        _LOGGER.error('Error when running speedtest')
         break
