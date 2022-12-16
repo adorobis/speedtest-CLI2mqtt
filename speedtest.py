@@ -188,17 +188,24 @@ def on_connect(client, userdata, flags, rc):
         # Speedtest readings
         send_autodiscover(
             name="Download", entity_id="speedtest_net_download", entity_type="sensor",
-            state_topic="speedtest/download", unit_of_measurement="Mbit/s", state_class="measurement"
+            state_topic="speedtest/download", unit_of_measurement="Mbit/s",
+            attributes={
+                "state_class":"measurement"
+            }
         )
         send_autodiscover(
             name="Upload", entity_id="speedtest_net_upload", entity_type="sensor",
-            state_topic="speedtest/upload", unit_of_measurement="Mbit/s", state_class="measurement"
+            state_topic="speedtest/upload", unit_of_measurement="Mbit/s",
+            attributes={
+                "state_class":"measurement"
+            }
         )
         send_autodiscover(
             name="Ping", entity_id="speedtest_net_ping", entity_type="sensor",
-            state_topic="speedtest/ping", unit_of_measurement="ms", state_class="measurement",
+            state_topic="speedtest/ping", unit_of_measurement="ms",
             attributes={
-                "json_attributes_topic":"speedtest/attributes"
+                "json_attributes_topic":"speedtest/attributes",
+                "state_class":"measurement"
             }
         )
         send_autodiscover(
