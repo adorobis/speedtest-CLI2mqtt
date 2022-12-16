@@ -46,9 +46,7 @@ if CONSOLE:
     handler1.setLevel(logging.INFO)
     _LOGGER.addHandler(handler1)
 else:
-    formatter2 = \
-        logging.Formatter('%(levelname)s %(asctime)s %(filename)s - %(message)s')
-#    handler2 = logging.handlers.SysLogHandler(address = '/dev/log')
+    formatter2 = logging.Formatter('%(levelname)s %(asctime)s %(filename)s - %(message)s')
     LOGFILE = os.path.dirname(os.path.abspath(__file__)) + '/../config/speedtest.log'
     handler2 = logging.handlers.RotatingFileHandler(LOGFILE, maxBytes=(1048576*5), backupCount=7)
     handler2.setFormatter(formatter2)
@@ -190,15 +188,15 @@ def on_connect(client, userdata, flags, rc):
         # Speedtest readings
         send_autodiscover(
             name="Download", entity_id="speedtest_net_download", entity_type="sensor",
-            state_topic="speedtest/download", unit_of_measurement="Mbit/s"
+            state_topic="speedtest/download", unit_of_measurement="Mbit/s", state_class="measurement"
         )
         send_autodiscover(
             name="Upload", entity_id="speedtest_net_upload", entity_type="sensor",
-            state_topic="speedtest/upload", unit_of_measurement="Mbit/s"
+            state_topic="speedtest/upload", unit_of_measurement="Mbit/s", state_class="measurement"
         )
         send_autodiscover(
             name="Ping", entity_id="speedtest_net_ping", entity_type="sensor",
-            state_topic="speedtest/ping", unit_of_measurement="ms",
+            state_topic="speedtest/ping", unit_of_measurement="ms", state_class="measurement",
             attributes={
                 "json_attributes_topic":"speedtest/attributes"
             }
