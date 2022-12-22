@@ -15,7 +15,6 @@ import os
 
 # Read configuration from ini file
 config = configparser.ConfigParser()
-print(os.path.dirname(os.path.abspath(__file__)) + '/../config/config.ini')
 config.read(os.path.dirname(os.path.abspath(__file__)) + '/../config/config.ini')
 
 # Service Configuration
