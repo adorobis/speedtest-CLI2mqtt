@@ -37,7 +37,7 @@ HAAutoDiscoveryDeviceModel = config['HA']['HAAutoDiscoveryDeviceModel']
 
 # Setup Logger 
 _LOGGER = logging.getLogger(__name__)
-if CONSOLE:
+if CONSOLE == 1:
     formatter = \
         logging.Formatter('%(message)s')
     handler1 = logging.StreamHandler(sys.stdout)
@@ -52,7 +52,7 @@ else:
     handler2.setLevel(logging.INFO)
     _LOGGER.addHandler(handler2)
 
-if DEBUG:
+if DEBUG == 1:
   _LOGGER.setLevel(logging.DEBUG)
 else:
   _LOGGER.setLevel(logging.INFO)
@@ -78,37 +78,56 @@ def run_speedtest():
     _LOGGER.debug('Stderr: %s', stderr)
 
     # Speed Test Results - (from returned JSON string)
-    st_results = json.loads(stdout)
-    down_load_speed = int(st_results["download"]["bandwidth"]*8/1000000)
-    up_load_speed = int(st_results["upload"]["bandwidth"]*8/1000000)
-    ping_latency = round(float(st_results["ping"]["latency"]),2)
-    isp = st_results["isp"]
-    server_name = st_results["server"]["name"]
-    url_result = st_results["result"]["url"]
-    server_id = st_results["server"]["id"]
-    timestamp = st_results["timestamp"]
 
-    attributes ={
-        "url_result" : url_result,
-        "server_id" : server_id,
+    if len(stderr) > 0:
+        st_results = json.loads(stderr)
+        result_type =  st_results["type"]
+        timestamp = st_results["timestamp"]
+        message = st_results["message"]
+        level = st_results["level"]
+        attributes ={
+        "message" : message,
+        "level" : level,
         "timestamp" : timestamp
-    }
-    json_attributes=json.dumps(attributes, indent = 4)
+        }
+        json_attributes=json.dumps(attributes, indent = 4)
+        publish_message(msg=json_attributes, mqtt_path='speedtest/attributes')
+        _LOGGER.info('Log level: %s', level)
+        _LOGGER.info('Message: %s', message)
+        _LOGGER.info('Timestamp: %s', timestamp)   
+    else:
+        st_results = json.loads(stdout)
+        down_load_speed = int(st_results["download"]["bandwidth"]*8/1000000)
+        up_load_speed = int(st_results["upload"]["bandwidth"]*8/1000000)
+        ping_latency = round(float(st_results["ping"]["latency"]),2)
+        isp = st_results["isp"]
+        server_name = st_results["server"]["name"]
+        url_result = st_results["result"]["url"]
+        server_id = st_results["server"]["id"]
+        timestamp = st_results["timestamp"]
+        
 
-    publish_message(msg=ping_latency, mqtt_path='speedtest/ping')
-    publish_message(msg=down_load_speed, mqtt_path='speedtest/download')
-    publish_message(msg=up_load_speed, mqtt_path='speedtest/upload')
-    publish_message(msg=isp, mqtt_path='speedtest/isp')
-    publish_message(msg=server_name, mqtt_path='speedtest/server')
-    publish_message(msg=json_attributes, mqtt_path='speedtest/attributes')
+        attributes ={
+            "url_result" : url_result,
+            "server_id" : server_id,
+            "timestamp" : timestamp
+        }
+        json_attributes=json.dumps(attributes, indent = 4)
 
-    _LOGGER.debug('Downstream BW: %s',down_load_speed)
-    _LOGGER.debug('Upstram BW: %s',up_load_speed)
-    _LOGGER.debug('Ping Latency: %s', ping_latency)
-    _LOGGER.debug('ISP: %s', isp)
-    _LOGGER.debug('Server name: %s',server_name)
-    _LOGGER.debug('URL results: %s',url_result)
-    _LOGGER.debug('---------------------------------')
+        publish_message(msg=ping_latency, mqtt_path='speedtest/ping')
+        publish_message(msg=down_load_speed, mqtt_path='speedtest/download')
+        publish_message(msg=up_load_speed, mqtt_path='speedtest/upload')
+        publish_message(msg=isp, mqtt_path='speedtest/isp')
+        publish_message(msg=server_name, mqtt_path='speedtest/server')
+        publish_message(msg=json_attributes, mqtt_path='speedtest/attributes')
+
+        _LOGGER.debug('Downstream BW: %s',down_load_speed)
+        _LOGGER.debug('Upstram BW: %s',up_load_speed)
+        _LOGGER.debug('Ping Latency: %s', ping_latency)
+        _LOGGER.debug('ISP: %s', isp)
+        _LOGGER.debug('Server name: %s',server_name)
+        _LOGGER.debug('URL results: %s',url_result)
+        _LOGGER.debug('---------------------------------')
 
 def publish_message(msg, mqtt_path):
     try:
