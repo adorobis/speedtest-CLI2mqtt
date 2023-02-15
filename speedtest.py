@@ -79,7 +79,8 @@ def run_speedtest():
 
     # Speed Test Results - (from returned JSON string)
 
-    if len(stderr) > 0:
+    if len(stderr) > 0 and stderr[0] != "=":
+        _LOGGER.info('Stderr: %s', stderr)
         st_results = json.loads(stderr)
         result_type =  st_results["type"]
         timestamp = st_results["timestamp"]
