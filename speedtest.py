@@ -85,13 +85,14 @@ def run_speedtest():
         timestamp = st_results["timestamp"]
         message = st_results["message"]
         level = st_results["level"]
-        attributes ={
+        status_attributes ={
         "message" : message,
         "level" : level,
         "timestamp" : timestamp
         }
-        json_attributes=json.dumps(attributes, indent = 4)
-        publish_message(msg=json_attributes, mqtt_path='speedtest/attributes')
+        json_status_attributes=json.dumps(status_attributes, indent = 4)
+        publish_message(msg='on', mqtt_path='speedtest/error')
+        publish_message(msg=json_status_attributes, mqtt_path='speedtest/status_attributes')
         _LOGGER.info('Log level: %s', level)
         _LOGGER.info('Message: %s', message)
         _LOGGER.info('Timestamp: %s', timestamp)   
@@ -114,12 +115,21 @@ def run_speedtest():
         }
         json_attributes=json.dumps(attributes, indent = 4)
 
+        status_attributes ={
+        "message" : [],
+        "level" : [],
+        "timestamp" : []
+        }
+        json_status_attributes=json.dumps(status_attributes, indent = 4)
+
         publish_message(msg=ping_latency, mqtt_path='speedtest/ping')
         publish_message(msg=down_load_speed, mqtt_path='speedtest/download')
         publish_message(msg=up_load_speed, mqtt_path='speedtest/upload')
         publish_message(msg=isp, mqtt_path='speedtest/isp')
         publish_message(msg=server_name, mqtt_path='speedtest/server')
         publish_message(msg=json_attributes, mqtt_path='speedtest/attributes')
+        publish_message(msg='off', mqtt_path='speedtest/error')
+        publish_message(msg=json_status_attributes, mqtt_path='speedtest/status_attributes')
 
         _LOGGER.debug('Downstream BW: %s',down_load_speed)
         _LOGGER.debug('Upstram BW: %s',up_load_speed)
@@ -151,7 +161,7 @@ def delete_message(mqtt_path):
         time.sleep(0.1)
         _LOGGER.debug('delete topic {0} at {1}'.format(mqtt_path, time.asctime(time.localtime(time.time()))))
 
-def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_class = None, unit_of_measurement = None, icon = None, attributes = {}, command_topic = None, min_value = None, max_value = None):
+def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_class = None, unit_of_measurement = None, icon = None, attributes = {}, command_topic = None, min_value = None, max_value = None, entity_category = None, payload_on = None, payload_off = None):
     mqtt_config_topic = "homeassistant/" + entity_type + "/" + entity_id + "/config"
     sensor_unique_id = HAAutoDiscoveryDeviceId + "-" + entity_id
 
@@ -181,6 +191,8 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
 
     if device_class:
         discovery_message["device_class"] = device_class
+    if entity_category:
+        discovery_message["entity_category"] = entity_category
 
     if icon:
         discovery_message["icon"] = icon
@@ -188,7 +200,10 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
         discovery_message["min"] = min_value
     if max_value:
         discovery_message["max"] = max_value
-        
+    if payload_on:
+        discovery_message["payload_on"] = 'on'
+    if payload_off:
+        discovery_message["payload_off"] = 'off'
     if len(attributes) > 0:
         for attribute_key, attribute_value in attributes.items():
             discovery_message[attribute_key] = attribute_value
@@ -233,6 +248,14 @@ def on_connect(client, userdata, flags, rc):
         send_autodiscover(
             name="Server", entity_id="speedtest_net_server", entity_type="sensor",
             state_topic="speedtest/server"
+        )
+        send_autodiscover(
+            name="Status", entity_id="speedtest_net_status", entity_type="binary_sensor",
+            state_topic="speedtest/error", device_class="problem", entity_category="diagnostic", 
+            payload_off="off", payload_on="on",
+            attributes={
+                "json_attributes_topic":"speedtest/status_attributes"
+            }
         )
 
     else:
