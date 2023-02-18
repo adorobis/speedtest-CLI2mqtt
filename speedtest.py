@@ -92,8 +92,8 @@ def run_speedtest():
         "timestamp" : timestamp
         }
         json_status_attributes=json.dumps(status_attributes, indent = 4)
-        publish_message(msg='on', mqtt_path='speedtest/error')
-        publish_message(msg=json_status_attributes, mqtt_path='speedtest/status_attributes')
+        publish_message(msg='on', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
+        publish_message(msg=json_status_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/status_attributes')
         _LOGGER.info('Log level: %s', level)
         _LOGGER.info('Message: %s', message)
         _LOGGER.info('Timestamp: %s', timestamp)   
@@ -123,14 +123,14 @@ def run_speedtest():
         }
         json_status_attributes=json.dumps(status_attributes, indent = 4)
 
-        publish_message(msg=ping_latency, mqtt_path='speedtest/ping')
-        publish_message(msg=down_load_speed, mqtt_path='speedtest/download')
-        publish_message(msg=up_load_speed, mqtt_path='speedtest/upload')
-        publish_message(msg=isp, mqtt_path='speedtest/isp')
-        publish_message(msg=server_name, mqtt_path='speedtest/server')
-        publish_message(msg=json_attributes, mqtt_path='speedtest/attributes')
-        publish_message(msg='off', mqtt_path='speedtest/error')
-        publish_message(msg=json_status_attributes, mqtt_path='speedtest/status_attributes')
+        publish_message(msg=ping_latency, mqtt_path=HAAutoDiscoveryDeviceId+'/ping')
+        publish_message(msg=down_load_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/download')
+        publish_message(msg=up_load_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/upload')
+        publish_message(msg=isp, mqtt_path=HAAutoDiscoveryDeviceId+'/isp')
+        publish_message(msg=server_name, mqtt_path=HAAutoDiscoveryDeviceId+'/server')
+        publish_message(msg=json_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/attributes')
+        publish_message(msg='off', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
+        publish_message(msg=json_status_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/status_attributes')
 
         _LOGGER.debug('Downstream BW: %s',down_load_speed)
         _LOGGER.debug('Upstram BW: %s',up_load_speed)
@@ -168,7 +168,7 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
 
     discovery_message = {
         "name": HAAutoDiscoveryDeviceName + " " + name,
-        "availability_topic":"speedtest/status",
+        "availability_topic":HAAutoDiscoveryDeviceId+"/status",
         "payload_available":"online",
         "payload_not_available":"offline",
         "unique_id": sensor_unique_id,
@@ -216,46 +216,46 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
 
 
 def on_connect(client, userdata, flags, rc):
-    publish_message("online","speedtest/status")
+    publish_message("online",HAAutoDiscoveryDeviceId+"/status")
     if HAEnableAutoDiscovery is True:
         _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/speedtest_net_[nametemp]/config')
         # Speedtest readings
         send_autodiscover(
-            name="Download", entity_id="speedtest_net_download", entity_type="sensor",
-            state_topic="speedtest/download", unit_of_measurement="Mbit/s",
+            name="Download", entity_id=HAAutoDiscoveryDeviceId+"_net_download", entity_type="sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/download", unit_of_measurement="Mbit/s",
             attributes={
                 "state_class":"measurement"
             }
         )
         send_autodiscover(
-            name="Upload", entity_id="speedtest_net_upload", entity_type="sensor",
-            state_topic="speedtest/upload", unit_of_measurement="Mbit/s",
+            name="Upload", entity_id=HAAutoDiscoveryDeviceId+"_net_upload", entity_type="sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/upload", unit_of_measurement="Mbit/s",
             attributes={
                 "state_class":"measurement"
             }
         )
         send_autodiscover(
-            name="Ping", entity_id="speedtest_net_ping", entity_type="sensor",
-            state_topic="speedtest/ping", unit_of_measurement="ms",
+            name="Ping", entity_id=HAAutoDiscoveryDeviceId+"_net_ping", entity_type="sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/ping", unit_of_measurement="ms",
             attributes={
-                "json_attributes_topic":"speedtest/attributes",
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/attributes",
                 "state_class":"measurement"
             }
         )
         send_autodiscover(
-            name="ISP", entity_id="speedtest_net_isp", entity_type="sensor",
-            state_topic="speedtest/isp"
+            name="ISP", entity_id=HAAutoDiscoveryDeviceId+"_net_isp", entity_type="sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/isp"
         )
         send_autodiscover(
-            name="Server", entity_id="speedtest_net_server", entity_type="sensor",
-            state_topic="speedtest/server"
+            name="Server", entity_id=HAAutoDiscoveryDeviceId+"_net_server", entity_type="sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/server"
         )
         send_autodiscover(
-            name="Status", entity_id="speedtest_net_status", entity_type="binary_sensor",
-            state_topic="speedtest/error", device_class="problem", entity_category="diagnostic", 
+            name="Status", entity_id=HAAutoDiscoveryDeviceId+"_net_status", entity_type="binary_sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/error", device_class="problem", entity_category="diagnostic", 
             payload_off="off", payload_on="on",
             attributes={
-                "json_attributes_topic":"speedtest/status_attributes"
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/status_attributes"
             }
         )
 
@@ -281,14 +281,14 @@ def on_disconnect(client, userdata, rc):
         recon()
 
 # Connect to the MQTT broker
-mqttc = mqtt.Client('Speedtest')
+mqttc = mqtt.Client(HAAutoDiscoveryDeviceId)
 if  MQTTUser != False and MQTTPassword != False :
     mqttc.username_pw_set(MQTTUser,MQTTPassword)
 
 # Define the mqtt callbacks
 mqttc.on_connect = on_connect
 mqttc.on_disconnect = on_disconnect
-mqttc.will_set("speedtest/status",payload="offline", qos=0, retain=True)
+mqttc.will_set(HAAutoDiscoveryDeviceId+"/status",payload="offline", qos=0, retain=True)
 
 
 while True:
