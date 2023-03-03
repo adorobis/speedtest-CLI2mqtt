@@ -1,11 +1,15 @@
-FROM python:slim
+FROM python:alpine
 
 ARG VERSION
 
-RUN apt-get update && \
-    apt-get --assume-yes install curl && \
-    curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | bash && \
-    apt-get --assume-yes install speedtest
+ARG TARGETARCH
+
+COPY speedtest/ookla-speedtest-1.2.0-linux-$TARGETARCH.tgz ./speedtest.tgz
+
+RUN tar -xvzf speedtest.tgz && \
+    mkdir /usr/src/app && \
+    cp speedtest /usr/src/app/speedtest && \
+    rm speedtest*
 
 WORKDIR /usr/src/app
 
