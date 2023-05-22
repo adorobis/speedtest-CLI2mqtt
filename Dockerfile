@@ -21,6 +21,8 @@ WORKDIR /usr/src/config
 
 COPY config.ini ./
 
+RUN sed -i 's:SPEEDTEST_PATH=speedtest:SPEEDTEST_PATH=/usr/src/app/speedtest:g' ./config.ini
+
 WORKDIR /usr/src/app
 
 COPY speedtest.py ./
