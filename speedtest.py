@@ -104,7 +104,11 @@ def run_speedtest():
         ping_latency = round(float(st_results["ping"]["latency"]),2)
         isp = st_results["isp"]
         server_name = st_results["server"]["name"]
-        url_result = st_results["result"]["url"]
+        url_persisted = st_results["result"]["persisted"]
+        if url_persisted:
+            url_result = st_results["result"]["url"]
+        else:
+            url_result = ""
         server_id = st_results["server"]["id"]
         timestamp = st_results["timestamp"]
         
