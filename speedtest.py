@@ -99,8 +99,8 @@ def run_speedtest():
         _LOGGER.info('Timestamp: %s', timestamp)   
     else:
         st_results = json.loads(stdout)
-        down_load_speed = int(st_results["download"]["bandwidth"]*8/1000000)
-        up_load_speed = int(st_results["upload"]["bandwidth"]*8/1000000)
+        download_speed = int(st_results["download"]["bandwidth"]*8/1000000)
+        upload_speed = int(st_results["upload"]["bandwidth"]*8/1000000)
         ping_latency = round(float(st_results["ping"]["latency"]),2)
         isp = st_results["isp"]
         server_name = st_results["server"]["name"]
@@ -128,16 +128,16 @@ def run_speedtest():
         json_error_attributes=json.dumps(error_attributes, indent = 4)
 
         publish_message(msg=ping_latency, mqtt_path=HAAutoDiscoveryDeviceId+'/ping')
-        publish_message(msg=down_load_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/download')
-        publish_message(msg=up_load_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/upload')
+        publish_message(msg=download_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/download')
+        publish_message(msg=upload_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/upload')
         publish_message(msg=isp, mqtt_path=HAAutoDiscoveryDeviceId+'/isp')
         publish_message(msg=server_name, mqtt_path=HAAutoDiscoveryDeviceId+'/server')
         publish_message(msg=json_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/attributes')
         publish_message(msg='off', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
         publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error_attributes')
 
-        _LOGGER.debug('Downstream BW: %s',down_load_speed)
-        _LOGGER.debug('Upstram BW: %s',up_load_speed)
+        _LOGGER.debug('Downstream BW: %s',download_speed)
+        _LOGGER.debug('Upstram BW: %s',upload_speed)
         _LOGGER.debug('Ping Latency: %s', ping_latency)
         _LOGGER.debug('ISP: %s', isp)
         _LOGGER.debug('Server name: %s',server_name)
