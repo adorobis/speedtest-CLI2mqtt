@@ -64,6 +64,8 @@ def run_speedtest():
         speed_test_server_id = ''
     else:
         speed_test_server_id = '--server-id=' + SPEEDTEST_SERVERID
+
+    publish_message(msg='true', mqtt_path=HAAutoDiscoveryDeviceId+'/testinprogress')
     process = subprocess.Popen([SPEEDTEST_PATH,
                         '--format=json',
                         '--precision=4',
@@ -76,6 +78,7 @@ def run_speedtest():
     stdout, stderr = process.communicate()
     _LOGGER.debug('Stdout: %s', stdout)
     _LOGGER.debug('Stderr: %s', stderr)
+    publish_message(msg='false', mqtt_path=HAAutoDiscoveryDeviceId+'/testinprogress')
 
     # Speed Test Results - (from returned JSON string)
 
@@ -288,6 +291,11 @@ def on_connect(client, userdata, flags, rc):
             }
         )
         send_autodiscover(
+            name="Test in progress", entity_id=HAAutoDiscoveryDeviceId+"_net_testinprogress", entity_type="binary_sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/testinprogress", device_class="running", entity_category="diagnostic", 
+            payload_off="false", payload_on="true",
+        )
+        send_autodiscover(
             name="Error", entity_id=HAAutoDiscoveryDeviceId+"_net_error", entity_type="binary_sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/error", device_class="problem", entity_category="diagnostic", 
             payload_off="off", payload_on="on",
@@ -307,6 +315,7 @@ def on_connect(client, userdata, flags, rc):
         delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_ping/config")
         delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_isp/config")
         delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_server/config")
+        delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_testinprogress/config")
         delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_error/config")
         delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_status/config")
 
