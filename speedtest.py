@@ -86,14 +86,14 @@ def run_speedtest():
         timestamp = st_results["timestamp"]
         message = st_results["message"]
         level = st_results["level"]
-        status_attributes ={
+        error_attributes ={
         "message" : message,
         "level" : level,
         "timestamp" : timestamp
         }
-        json_status_attributes=json.dumps(status_attributes, indent = 4)
+        json_error_attributes=json.dumps(error_attributes, indent = 4)
         publish_message(msg='on', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
-        publish_message(msg=json_status_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/status_attributes')
+        publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error_attributes')
         _LOGGER.info('Log level: %s', level)
         _LOGGER.info('Message: %s', message)
         _LOGGER.info('Timestamp: %s', timestamp)   
@@ -120,12 +120,12 @@ def run_speedtest():
         }
         json_attributes=json.dumps(attributes, indent = 4)
 
-        status_attributes ={
+        error_attributes ={
         "message" : [],
         "level" : [],
         "timestamp" : []
         }
-        json_status_attributes=json.dumps(status_attributes, indent = 4)
+        json_error_attributes=json.dumps(error_attributes, indent = 4)
 
         publish_message(msg=ping_latency, mqtt_path=HAAutoDiscoveryDeviceId+'/ping')
         publish_message(msg=down_load_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/download')
@@ -134,7 +134,7 @@ def run_speedtest():
         publish_message(msg=server_name, mqtt_path=HAAutoDiscoveryDeviceId+'/server')
         publish_message(msg=json_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/attributes')
         publish_message(msg='off', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
-        publish_message(msg=json_status_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/status_attributes')
+        publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error_attributes')
 
         _LOGGER.debug('Downstream BW: %s',down_load_speed)
         _LOGGER.debug('Upstram BW: %s',up_load_speed)
@@ -207,9 +207,9 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
     if max_value:
         discovery_message["max"] = max_value
     if payload_on:
-        discovery_message["payload_on"] = 'on'
+        discovery_message["payload_on"] = payload_on
     if payload_off:
-        discovery_message["payload_off"] = 'off'
+        discovery_message["payload_off"] = payload_off
     if len(attributes) > 0:
         for attribute_key, attribute_value in attributes.items():
             discovery_message[attribute_key] = attribute_value
@@ -261,20 +261,27 @@ def on_connect(client, userdata, flags, rc):
             icon="mdi:server-network-outline"
         )
         send_autodiscover(
-            name="Status", entity_id=HAAutoDiscoveryDeviceId+"_net_status", entity_type="binary_sensor",
+            name="Error", entity_id=HAAutoDiscoveryDeviceId+"_net_error", entity_type="binary_sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/error", device_class="problem", entity_category="diagnostic", 
             payload_off="off", payload_on="on",
             attributes={
-                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/status_attributes"
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/error_attributes"
             }
+        )
+        send_autodiscover(
+            name="Status", entity_id=HAAutoDiscoveryDeviceId+"_net_status", entity_type="binary_sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/status", device_class="connectivity", entity_category="diagnostic", 
+            payload_off="offline", payload_on="online"
         )
 
     else:
-        delete_message("homeassistant/sensor/speedtest_download/config")
-        delete_message("homeassistant/sensor/speedtest_upload/config")
-        delete_message("homeassistant/sensor/speedtest_ping/config")
-        delete_message("homeassistant/sensor/speedtest_isp/config")
-        delete_message("homeassistant/sensor/speedtest_server/config")
+        delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_download/config")
+        delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_upload/config")
+        delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_ping/config")
+        delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_isp/config")
+        delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_server/config")
+        delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_error/config")
+        delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_status/config")
 
 def recon():
     try:
