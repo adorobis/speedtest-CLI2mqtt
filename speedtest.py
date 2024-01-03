@@ -9,6 +9,7 @@ import paho.mqtt.client as mqtt
 import time
 import configparser
 import os
+from datetime import datetime, timedelta, timezone
 
 
 
@@ -57,15 +58,18 @@ if DEBUG:
 else:
   _LOGGER.setLevel(logging.INFO)
 
-def run_speedtest():
+def run_speedtest(test_time, next_test):
     # Run Speedtest
     _LOGGER.debug('Running Speedtest')
+    
     if SPEEDTEST_SERVERID == '':
         speed_test_server_id = ''
     else:
         speed_test_server_id = '--server-id=' + SPEEDTEST_SERVERID
 
-    publish_message(msg='true', mqtt_path=HAAutoDiscoveryDeviceId+'/testinprogress')
+    publish_message(msg=next_test.astimezone().isoformat(), mqtt_path=HAAutoDiscoveryDeviceId+'/next_test')
+    publish_message(msg='true', mqtt_path=HAAutoDiscoveryDeviceId+'/test')
+    
     process = subprocess.Popen([SPEEDTEST_PATH,
                         '--format=json',
                         '--precision=4',
@@ -78,9 +82,19 @@ def run_speedtest():
     stdout, stderr = process.communicate()
     _LOGGER.debug('Stdout: %s', stdout)
     _LOGGER.debug('Stderr: %s', stderr)
-    publish_message(msg='false', mqtt_path=HAAutoDiscoveryDeviceId+'/testinprogress')
+
+    publish_message(msg='false', mqtt_path=HAAutoDiscoveryDeviceId+'/test')
 
     # Speed Test Results - (from returned JSON string)
+    last_test_attributes = {
+        "duration": None,
+    }
+    error = 'off'
+    error_attributes = {
+        "message" : [],
+        "level" : [],
+        "timestamp" : []
+    }
 
     if len(stderr) > 0 and stderr[0] != "=":
         _LOGGER.info('Stderr: %s', stderr)
@@ -89,17 +103,15 @@ def run_speedtest():
         timestamp = st_results["timestamp"]
         message = st_results["message"]
         level = st_results["level"]
-        error_attributes ={
-        "message" : message,
-        "level" : level,
-        "timestamp" : timestamp
+        error = 'on'
+        error_attributes = {
+            "message" : message,
+            "level" : level,
+            "timestamp" : timestamp
         }
-        json_error_attributes=json.dumps(error_attributes, indent = 4)
-        publish_message(msg='on', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
-        publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error/attributes')
         _LOGGER.info('Log level: %s', level)
         _LOGGER.info('Message: %s', message)
-        _LOGGER.info('Timestamp: %s', timestamp)   
+        _LOGGER.info('Timestamp: %s', timestamp)
     else:
         st_results = json.loads(stdout)
         
@@ -135,7 +147,6 @@ def run_speedtest():
         server_id = st_results["server"]["id"]
         timestamp = st_results["timestamp"]
         
-
         attributes ={
             "url_result" : url_result,
             "server_id" : server_id,
@@ -143,13 +154,8 @@ def run_speedtest():
         }
         json_attributes=json.dumps(attributes, indent = 4)
 
-        error_attributes ={
-        "message" : [],
-        "level" : [],
-        "timestamp" : []
-        }
-        json_error_attributes=json.dumps(error_attributes, indent = 4)
-
+        last_test_attributes["duration"] = round((datetime.now(timezone.utc) - test_time) / timedelta(seconds=1),1)
+        
         publish_message(msg=ping_latency, mqtt_path=HAAutoDiscoveryDeviceId+'/ping')
         publish_message(msg=json_ping_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/ping/attributes')
         publish_message(msg=download_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/download')
@@ -158,8 +164,6 @@ def run_speedtest():
         publish_message(msg=server_name, mqtt_path=HAAutoDiscoveryDeviceId+'/server')
         publish_message(msg=json_server_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/server/attributes')
         publish_message(msg=json_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/attributes')
-        publish_message(msg='off', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
-        publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error/attributes')
 
         _LOGGER.debug('Downstream BW: %s',download_speed)
         _LOGGER.debug('Upstram BW: %s',upload_speed)
@@ -167,7 +171,17 @@ def run_speedtest():
         _LOGGER.debug('ISP: %s', isp)
         _LOGGER.debug('Server name: %s',server_name)
         _LOGGER.debug('URL results: %s',url_result)
-        _LOGGER.debug('---------------------------------')
+
+    # Finally publishing error, if any, or clearing previous one (if any)
+    json_error_attributes=json.dumps(error_attributes, indent = 4)
+    publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error/attributes')
+    publish_message(msg=error, mqtt_path=HAAutoDiscoveryDeviceId+'/error')
+
+    # And publishing the "Last test" entity (with its duration attribute)
+    json_last_test_attributes = json.dumps(last_test_attributes, indent=4)
+    publish_message(msg=json_last_test_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/last_test/attributes')
+    publish_message(msg=datetime.now(timezone.utc).astimezone().isoformat(), mqtt_path=HAAutoDiscoveryDeviceId+'/last_test')
+    _LOGGER.debug('---------------------------------')
 
 def publish_message(msg, mqtt_path):
     try:
@@ -291,9 +305,25 @@ def on_connect(client, userdata, flags, rc):
             }
         )
         send_autodiscover(
-            name="Test in progress", entity_id=HAAutoDiscoveryDeviceId+"_net_testinprogress", entity_type="binary_sensor",
-            state_topic=HAAutoDiscoveryDeviceId+"/testinprogress", device_class="running", entity_category="diagnostic", 
+            name="Last test", entity_id=HAAutoDiscoveryDeviceId+"_net_last_test", entity_type="sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/last_test", device_class="timestamp",
+            icon="mdi:history",
+            attributes={
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/last_test/attributes"
+            }
+        )
+        send_autodiscover(
+            name="Next test", entity_id=HAAutoDiscoveryDeviceId+"_net_next_test", entity_type="sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/next_test", device_class="timestamp",
+            icon="mdi:update",
+        )
+        send_autodiscover(
+            name="Test", entity_id=HAAutoDiscoveryDeviceId+"_net_test", entity_type="binary_sensor",
+            state_topic=HAAutoDiscoveryDeviceId+"/test", device_class="running",
             payload_off="false", payload_on="true",
+            attributes={
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/test/attributes"
+            }
         )
         send_autodiscover(
             name="Error", entity_id=HAAutoDiscoveryDeviceId+"_net_error", entity_type="binary_sensor",
@@ -315,7 +345,9 @@ def on_connect(client, userdata, flags, rc):
         delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_ping/config")
         delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_isp/config")
         delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_server/config")
-        delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_testinprogress/config")
+        delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_last_test/config")
+        delete_message("homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_next_test/config")
+        delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_test/config")
         delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_error/config")
         delete_message("homeassistant/binary_sensor/"+HAAutoDiscoveryDeviceId+"_net_status/config")
 
@@ -358,8 +390,11 @@ mqttc.loop_start()
 # Main loop of the program
 while True:
     try:
-        run_speedtest()
-        time.sleep(refresh_interval)
+        test_time = datetime.now(timezone.utc)
+        next_test = test_time + timedelta(seconds=refresh_interval)
+        run_speedtest(test_time, next_test)
+        seconds_to_wait = (next_test - datetime.now(timezone.utc)) / timedelta(seconds=1)
+        time.sleep(seconds_to_wait)
         pass
     except KeyboardInterrupt:
         mqttc.loop_stop()
