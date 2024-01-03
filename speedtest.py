@@ -93,17 +93,37 @@ def run_speedtest():
         }
         json_error_attributes=json.dumps(error_attributes, indent = 4)
         publish_message(msg='on', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
-        publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error_attributes')
+        publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error/attributes')
         _LOGGER.info('Log level: %s', level)
         _LOGGER.info('Message: %s', message)
         _LOGGER.info('Timestamp: %s', timestamp)   
     else:
         st_results = json.loads(stdout)
+        
         download_speed = int(st_results["download"]["bandwidth"]*8/1000000)
         upload_speed = int(st_results["upload"]["bandwidth"]*8/1000000)
+        
         ping_latency = round(float(st_results["ping"]["latency"]),2)
+        ping_attributes = {
+            "jitter" : round(float(st_results["ping"]["jitter"]),2),
+            "low" : round(float(st_results["ping"]["low"]),2),
+            "high" : round(float(st_results["ping"]["high"]),2),
+        }
+        json_ping_attributes = json.dumps(ping_attributes, indent = 4)
+        
         isp = st_results["isp"]
+        
         server_name = st_results["server"]["name"]
+        server_attributes = {
+            "id" : st_results["server"]["id"],
+            "host" : st_results["server"]["host"],
+            "ip" : st_results["server"]["ip"],
+            "port" : st_results["server"]["port"],
+            "location" : st_results["server"]["location"],
+            "country" : st_results["server"]["country"],
+        }
+        json_server_attributes = json.dumps(server_attributes, indent = 4)
+        
         url_persisted = st_results["result"]["persisted"]
         if url_persisted:
             url_result = st_results["result"]["url"]
@@ -128,13 +148,15 @@ def run_speedtest():
         json_error_attributes=json.dumps(error_attributes, indent = 4)
 
         publish_message(msg=ping_latency, mqtt_path=HAAutoDiscoveryDeviceId+'/ping')
+        publish_message(msg=json_ping_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/ping/attributes')
         publish_message(msg=download_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/download')
         publish_message(msg=upload_speed, mqtt_path=HAAutoDiscoveryDeviceId+'/upload')
         publish_message(msg=isp, mqtt_path=HAAutoDiscoveryDeviceId+'/isp')
         publish_message(msg=server_name, mqtt_path=HAAutoDiscoveryDeviceId+'/server')
+        publish_message(msg=json_server_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/server/attributes')
         publish_message(msg=json_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/attributes')
         publish_message(msg='off', mqtt_path=HAAutoDiscoveryDeviceId+'/error')
-        publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error_attributes')
+        publish_message(msg=json_error_attributes, mqtt_path=HAAutoDiscoveryDeviceId+'/error/attributes')
 
         _LOGGER.debug('Downstream BW: %s',download_speed)
         _LOGGER.debug('Upstram BW: %s',upload_speed)
@@ -223,13 +245,14 @@ def send_autodiscover(name, entity_id, entity_type, state_topic = None, device_c
 def on_connect(client, userdata, flags, rc):
     publish_message("online",HAAutoDiscoveryDeviceId+"/status")
     if HAEnableAutoDiscovery is True:
-        _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/speedtest_net_[nametemp]/config')
+        _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/"+HAAutoDiscoveryDeviceId+"_net_[nametemp]/config')
         # Speedtest readings
         send_autodiscover(
             name="Download Speed", entity_id=HAAutoDiscoveryDeviceId+"_net_download", entity_type="sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/download", unit_of_measurement="Mbit/s",
             device_class="data_rate",icon="mdi:cloud-download-outline",
             attributes={
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/attributes",
                 "state_class":"measurement"
             }
         )
@@ -238,15 +261,16 @@ def on_connect(client, userdata, flags, rc):
             state_topic=HAAutoDiscoveryDeviceId+"/upload", unit_of_measurement="Mbit/s",
             device_class="data_rate",icon="mdi:cloud-upload-outline",
             attributes={
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/attributes",
                 "state_class":"measurement"
             }
         )
         send_autodiscover(
-            name="Ping Time", entity_id=HAAutoDiscoveryDeviceId+"_net_ping", entity_type="sensor",
+            name="Ping", entity_id=HAAutoDiscoveryDeviceId+"_net_ping", entity_type="sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/ping", unit_of_measurement="ms",
             device_class="duration",icon="mdi:cloud-clock-outline",
             attributes={
-                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/attributes",
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/ping/attributes",
                 "state_class":"measurement"
             }
         )
@@ -258,14 +282,17 @@ def on_connect(client, userdata, flags, rc):
         send_autodiscover(
             name="Server", entity_id=HAAutoDiscoveryDeviceId+"_net_server", entity_type="sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/server",
-            icon="mdi:server-network-outline"
+            icon="mdi:server-network-outline",
+            attributes={
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/server/attributes"
+            }
         )
         send_autodiscover(
             name="Error", entity_id=HAAutoDiscoveryDeviceId+"_net_error", entity_type="binary_sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/error", device_class="problem", entity_category="diagnostic", 
             payload_off="off", payload_on="on",
             attributes={
-                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/error_attributes"
+                "json_attributes_topic":HAAutoDiscoveryDeviceId+"/error/attributes"
             }
         )
         send_autodiscover(
