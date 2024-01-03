@@ -226,22 +226,25 @@ def on_connect(client, userdata, flags, rc):
         _LOGGER.info('Home Assistant MQTT Autodiscovery Topic Set: homeassistant/sensor/speedtest_net_[nametemp]/config')
         # Speedtest readings
         send_autodiscover(
-            name="Download", entity_id=HAAutoDiscoveryDeviceId+"_net_download", entity_type="sensor",
+            name="Download Speed", entity_id=HAAutoDiscoveryDeviceId+"_net_download", entity_type="sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/download", unit_of_measurement="Mbit/s",
+            device_class="data_rate",icon="mdi:cloud-download-outline",
             attributes={
                 "state_class":"measurement"
             }
         )
         send_autodiscover(
-            name="Upload", entity_id=HAAutoDiscoveryDeviceId+"_net_upload", entity_type="sensor",
+            name="Upload Speed", entity_id=HAAutoDiscoveryDeviceId+"_net_upload", entity_type="sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/upload", unit_of_measurement="Mbit/s",
+            device_class="data_rate",icon="mdi:cloud-upload-outline",
             attributes={
                 "state_class":"measurement"
             }
         )
         send_autodiscover(
-            name="Ping", entity_id=HAAutoDiscoveryDeviceId+"_net_ping", entity_type="sensor",
+            name="Ping Time", entity_id=HAAutoDiscoveryDeviceId+"_net_ping", entity_type="sensor",
             state_topic=HAAutoDiscoveryDeviceId+"/ping", unit_of_measurement="ms",
+            device_class="duration",icon="mdi:cloud-clock-outline",
             attributes={
                 "json_attributes_topic":HAAutoDiscoveryDeviceId+"/attributes",
                 "state_class":"measurement"
@@ -249,11 +252,13 @@ def on_connect(client, userdata, flags, rc):
         )
         send_autodiscover(
             name="ISP", entity_id=HAAutoDiscoveryDeviceId+"_net_isp", entity_type="sensor",
-            state_topic=HAAutoDiscoveryDeviceId+"/isp"
+            state_topic=HAAutoDiscoveryDeviceId+"/isp",
+            icon="mdi:cloud-question-outline"
         )
         send_autodiscover(
             name="Server", entity_id=HAAutoDiscoveryDeviceId+"_net_server", entity_type="sensor",
-            state_topic=HAAutoDiscoveryDeviceId+"/server"
+            state_topic=HAAutoDiscoveryDeviceId+"/server",
+            icon="mdi:server-network-outline"
         )
         send_autodiscover(
             name="Status", entity_id=HAAutoDiscoveryDeviceId+"_net_status", entity_type="binary_sensor",
