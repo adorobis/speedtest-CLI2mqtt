@@ -21,12 +21,47 @@ https://hub.docker.com/repository/docker/adorobis/speedtest2mqtt
 
 The easiest way is to do it with docker-compose:
 ```
-  speedtest:
-    container_name: speedtest
+version: "3.9"
+services:
+  speedtest2mqtt:
+    container_name: speedtest2mqtt
     image: adorobis/speedtest2mqtt:latest
+    configs:
+      - source: speedtest2mqtt
+        target: /usr/src/config/config.ini
     restart: unless-stopped
-    volumes:
-      - <your docker compose home directory>/speedtest/config:/usr/src/config
+
+configs:
+  speedtest2mqtt:
+    content: |
+      [DEFAULT]
+      SPEEDTEST_SERVERID=
+      SPEEDTEST_PATH=/usr/src/app/speedtest
+      REFRESH_INTERVAL=86400
+      DEBUG = 0
+      CONSOLE = 0
+      [MQTT]
+      # MQTT broker - IP
+      MQTTServer=${MQTTServer}
+      # MQTT broker - Port
+      MQTTPort=1883
+       # MQTT broker - keepalive
+      MQTTKeepalive=45
+      # MQTT broker - user - default: empty (disabled/no authentication)
+      MQTTUser=mqtt
+      # MQTT broker - password - default: empty (disabled/no authentication)
+      MQTTPassword=${MQTTPassword}
+      [HA]
+      # Home Assistant send auto discovery for sensors
+      HAEnableAutoDiscovery=True
+      # Unique device ID (change this to be unique if running multiple instances)
+      HAAutoDiscoveryDeviceId=speedtestdev
+      # Device name shown in the frontend
+      HAAutoDiscoveryDeviceName=Speedtest.net-dev
+      # Device manufacturer shown in device info
+      HAAutoDiscoveryDeviceManufacturer=Speedtest.net
+      # Device model shown in device info
+      HAAutoDiscoveryDeviceModel=Speedtest.net CLI
 ```
 or via docker command:
 ```
